@@ -22,50 +22,18 @@ function Square(props) {
 }
 
 class Board extends React.Component {
-  constructor(props) {
-    console.log('Board constructor', props);
-    super(props);
-    // state有點像是vue的data
-    this.state = {
-      squares: Array(9).fill(null),
-      xIsNext: true,
-    };
-  }
-
-  handleClick(i) {
-    const _squares = this.state.squares.slice();
-    // 使用slice() 避免直接修改資料讓我們能將遊戲歷史先前的版本完整的保留下來，並在之後重新使用它們
-
-    if (calculateWinner(_squares) || _squares[i]) {
-      return;
-    }
-
-    _squares[i] = this.state.xIsNext ? '🦄' : '🐎';
-    // 類似vue的 vm.$set
-    this.setState({ squares: _squares, xIsNext: !this.state.xIsNext });
-  }
-
   renderSquare(i) {
     return (
       <Square
-        value={this.state.squares[i]}
-        onClick={() => this.handleClick(i)}
+        value={this.props.squares[i]}
+        onClick={() => this.props.onClick(i)}
       />
     );
   }
 
   render() {
-    const winner = calculateWinner(this.state.squares);
-    let status;
-    if (winner) {
-      status = '贏家:' + winner;
-    } else {
-      status = '下一位:' + (this.state.xIsNext ? '🦄' : '🐎');
-    }
-
     return (
       <div>
-        <div className="status">{status}</div>
         <div className="board-row">
           {this.renderSquare(0)}
           {this.renderSquare(1)}
@@ -107,15 +75,81 @@ function calculateWinner(squares) {
 }
 
 class Game extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      history: [
+        {
+          squares: Array(9).fill(null),
+        },
+      ],
+      xIsNext: true,
+      stepNumber: 0,
+    };
+  }
+
+  handleClick(i) {
+    // 使用slice() 避免直接修改資料讓我們能將遊戲歷史先前的版本完整的保留下來，並在之後重新使用它們
+    const _history = this.state.history.slice(0, this.state.stepNumber + 1);
+    const _current = _history[_history.length - 1];
+    const _squares = _current.squares.slice();
+
+    if (calculateWinner(_squares) || _squares[i]) {
+      return;
+    }
+
+    _squares[i] = this.state.xIsNext ? '🦄' : '🐎';
+    // 類似vue的 vm.$set
+    this.setState({
+      history: _history.concat([
+        {
+          squares: _squares,
+        },
+      ]),
+      squares: _squares,
+      stepNumber: _history.length,
+      xIsNext: !this.state.xIsNext,
+    });
+  }
+
+  jumpTo(step) {
+    this.setState({
+      stepNumber: step,
+      xIsNext: step % 2 === 0,
+    });
+  }
+
   render() {
+    const history = this.state.history;
+    const current = history[this.state.stepNumber];
+    const winner = calculateWinner(current.squares);
+    const moves = history.map((step, move) => {
+      const desc = move ? '去第' + move + '步' : '最初';
+      return (
+        <li key={move}>
+          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+        </li>
+      );
+    });
+
+    let status;
+    if (winner) {
+      status = '贏家:' + winner;
+    } else {
+      status = '下一位:' + (this.state.xIsNext ? '🦄' : '🐎');
+    }
+
     return (
       <div className="game">
         <div className="game-board">
-          <Board />
+          <Board
+            squares={current.squares}
+            onClick={(i) => this.handleClick(i)}
+          />
         </div>
         <div className="game-info">
-          <div>{/* status */}</div>
-          <ol>{/* TODO */}</ol>
+          <div className="status">{status}</div>
+          <ol>{moves}</ol>
         </div>
       </div>
     );
