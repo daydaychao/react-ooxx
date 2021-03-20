@@ -1,0 +1,5 @@
+{
+  "html-whitespace-sensitivity": "css",
+  "jsxBracketSameLine": true,
+  "singleQuote": true
+}
